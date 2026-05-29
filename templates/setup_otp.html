@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Zero Trust Bank - Setup OTP</title>
+    <style>
+        body { font-family: Arial; margin: 50px; background: #f0f2f5; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; text-align: center; }
+        h3 { color: #333; }
+        input[type=text] { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 20px; text-align: center; letter-spacing: 5px; }
+        button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 5px 0; }
+        button:hover { background: #1557b0; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        .flash { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .flash.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .secret-key { background: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 18px; text-align: center; letter-spacing: 2px; border: 1px dashed #1a73e8; margin: 20px 0; }
+        .steps { background: #e8f0fe; padding: 20px; border-radius: 5px; margin: 20px 0; }
+        .step { margin: 10px 0; }
+        .qr-container { text-align: center; margin: 20px 0; }
+        .qr-image {
+            max-width: 250px;
+            margin: 0 auto;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .qr-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .uri-box { background: #f0f2f5; padding: 10px; border-radius: 5px; font-size: 12px; word-break: break-all; margin: 10px 0; }
+        a { color: #1a73e8; text-decoration: none; }
+        .button-group { display: flex; gap: 10px; }
+        .note { font-size: 14px; color: #666; text-align: center; margin-top: 10px; }
+        .manual-link { text-align: center; margin: 10px 0; }
+        .manual-link a { color: #1a73e8; cursor: pointer; text-decoration: underline; }
+        .manual-entry { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📱 Setup Two-Factor Authentication</h2>
+
+        {% if user and user.is_otp_enabled %}
+            <div class="flash success">✅ OTP is currently ENABLED for your account</div>
+        {% endif %}
+
+        <div class="steps">
+            <h3>📋 Setup Instructions:</h3>
+            <div class="step">1️⃣ Install Google Authenticator or Microsoft Authenticator on your phone</div>
+            <div class="step">2️⃣ Scan the QR code below with your authenticator app</div>
+            <div class="step">3️⃣ Enter the 6-digit code from the app below</div>
+        </div>
+
+        <!-- Real QR Code -->
+        <div class="qr-container">
+            <div class="qr-image">
+                <img src="{{ url_for('generate_qr') }}" alt="OTP QR Code">
+            </div>
+            <p class="note">📸 Scan this QR code with your authenticator app</p>
+        </div>
+
+        <!-- Manual Entry Toggle -->
+        <div class="manual-link">
+            <a onclick="toggleManual()" style="cursor: pointer;">🔑 Can't scan QR? Enter secret key manually</a>
+        </div>
+
+        <!-- Manual Entry Section (Hidden by default) -->
+        <div id="manualEntry" class="manual-entry">
+            <div class="secret-key">
+                <strong>Secret Key:</strong><br>
+                <span style="font-size: 16px; word-break: break-all;">{{ otp_secret }}</span>
+                <br>
+                <button onclick="copySecretKey()" style="width: auto; padding: 5px 15px; margin-top: 10px; font-size: 14px;">📋 Copy Secret Key</button>
+            </div>
+
+            <div class="uri-box">
+                <strong>Manual Entry URI:</strong><br>
+                <small>{{ otp_uri }}</small>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <h3>Verify OTP Setup</h3>
+        <form method="POST" id="otpForm">
+            <input type="text" name="otp_code" id="otpCode" placeholder="Enter 6-digit code" maxlength="6" pattern="[0-9]{6}" required>
+            <button type="submit">Verify and Enable OTP</button>
+        </form>
+
+        {% if user and user.is_otp_enabled %}
+        <form method="POST" action="{{ url_for('disable_otp') }}">
+            <button type="submit" class="danger" onclick="return confirm('Are you sure you want to disable OTP? This will make your account less secure.')">Disable OTP</button>
+        </form>
+        {% endif %}
+
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+        </div>
+    </div>
+
+    <script>
+        // Toggle manual entry section
+        function toggleManual() {
+            var manualEntry = document.getElementById('manualEntry');
+            if (manualEntry.style.display === 'none' || manualEntry.style.display === '') {
+                manualEntry.style.display = 'block';
+            } else {
+                manualEntry.style.display = 'none';
+            }
+        }
+
+        // Copy secret key to clipboard
+        function copySecretKey() {
+            var secretKey = "{{ otp_secret }}";
+            navigator.clipboard.writeText(secretKey).then(function() {
+                alert('Secret key copied to clipboard!');
+            }, function() {
+                alert('Failed to copy secret key. Please select and copy manually.');
+            });
+        }
+
+        // Auto-format OTP input (numbers only)
+        document.getElementById('otpCode').addEventListener('input', function (e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+    </script>
+</body>
+</html>

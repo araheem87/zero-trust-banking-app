@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Zero Trust Bank - View User</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        .navbar {
+            background: white; border-radius: 15px; padding: 15px 30px;
+            margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .logo { display: flex; align-items: center; gap: 10px; }
+        .logo i { font-size: 30px; color: #667eea; }
+        .logo span {
+            font-size: 24px; font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .card {
+            background: white; border-radius: 20px; padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        h2 { color: #333; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .info-item {
+            background: #f8f9fa; padding: 15px; border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .info-label { color: #666; font-size: 14px; margin-bottom: 5px; display: block; }
+        .info-value { font-size: 18px; font-weight: 600; color: #333; }
+        .btn {
+            padding: 10px 20px; border: none; border-radius: 10px;
+            font-size: 14px; cursor: pointer; text-decoration: none; display: inline-flex;
+            align-items: center; gap: 8px; transition: all 0.3s;
+        }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102,126,234,0.4); }
+        .btn-secondary { background: #e8f0fe; color: #667eea; }
+        .btn-secondary:hover { background: #d4e0fc; }
+        .btn-success { background: #d4edda; color: #155724; }
+        .btn-success:hover { background: #c3e6cb; }
+        .btn-warning { background: #fff3cd; color: #856404; }
+        .btn-warning:hover { background: #ffeaa7; }
+        .btn-danger { background: #fee8e8; color: #dc3545; }
+        .btn-info { background: #d1ecf1; color: #0c5460; }
+        .badge {
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .badge.customer { background: #e8f0fe; color: #667eea; }
+        .badge.employee { background: #d4edda; color: #155724; }
+        .badge.admin { background: #f8d7da; color: #721c24; }
+        .badge.verified { background: #d4edda; color: #155724; }
+        .badge.unverified { background: #f8d7da; color: #721c24; }
+        .action-group {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .action-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        select, input {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-family: 'Poppins', sans-serif;
+        }
+        .flash-messages { margin-bottom: 20px; }
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .alert-success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+        .alert-error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+        .alert-info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
+        @media (max-width: 768px) {
+            .navbar { flex-direction: column; text-align: center; }
+            .button-group { flex-direction: column; }
+            .btn { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="logo">
+                <i class="fas fa-shield-alt"></i>
+                <span>User Details</span>
+            </div>
+            <div>
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Back to Users</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary">Logout</a>
+            </div>
+        </nav>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <i class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="card">
+            <h2>
+                <i class="fas fa-user-circle"></i>
+                {{ user.username }} - Account Details
+                <span class="badge {{ user.role }}" style="margin-left: auto;">{{ user.role|title }}</span>
+            </h2>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">User ID</span>
+                    <div class="info-value">{{ user.id }}</div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Username</span>
+                    <div class="info-value">{{ user.username }}</div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Email</span>
+                    <div class="info-value">{{ user.email }}</div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Email Verified</span>
+                    <div class="info-value">
+                        {% if user.email_verified %}
+                            <span class="badge verified">✅ Verified</span>
+                        {% else %}
+                            <span class="badge unverified">❌ Not Verified</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Mobile</span>
+                    <div class="info-value">{{ user.mobile or 'Not set' }}</div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Mobile Verified</span>
+                    <div class="info-value">
+                        {% if user.is_mobile_verified %}
+                            <span class="badge verified">✅ Verified via SMS (Twilio)</span>
+                        {% else %}
+                            <span class="badge unverified">❌ Not Verified</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Current Role</span>
+                    <div class="info-value">
+                        <span class="badge {{ user.role }}">{{ user.role|title }}</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Failed Attempts</span>
+                    <div class="info-value">{{ user.failed_attempts }}</div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Account Locked</span>
+                    <div class="info-value">
+                        {% if user.is_locked %}
+                            <span class="badge unverified">🔒 Locked</span>
+                        {% else %}
+                            <span class="badge verified">✅ Active</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">2FA Enabled</span>
+                    <div class="info-value">
+                        {% if user.is_otp_enabled %}
+                            <span class="badge verified">✅ Enabled</span>
+                        {% else %}
+                            <span class="badge unverified">❌ Disabled</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Biometric (Fingerprint)</span>
+                    <div class="info-value">
+                        {% if user.webauthn_credential_id %}
+                            <span class="badge verified">✅ Registered</span>
+                            <small>({{ user.webauthn_sign_count }} uses)</small>
+                        {% else %}
+                            <span class="badge unverified">❌ Not Registered</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Member Since</span>
+                    <div class="info-value">{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last Login</span>
+                    <div class="info-value">{% if user.last_login %}{{ user.last_login.strftime('%Y-%m-%d %H:%M') }}{% else %}Never{% endif %}</div>
+                </div>
+            </div>
+
+            <div class="action-group">
+                <div class="action-title">
+                    <i class="fas fa-tools"></i> Admin Actions
+                </div>
+
+                <div class="button-group">
+                    <form method="POST" action="{{ url_for('admin_change_role', user_id=user.id) }}" style="display: inline;">
+                        <select name="role" style="margin-right: 10px;">
+                            <option value="customer" {% if user.role == 'customer' %}selected{% endif %}>Customer</option>
+                            <option value="employee" {% if user.role == 'employee' %}selected{% endif %}>Employee</option>
+                            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary">Update Role</button>
+                    </form>
+                </div>
+
+                <div class="button-group">
+                    {% if not user.email_verified %}
+                        <form method="POST" action="{{ url_for('admin_verify_email', user_id=user.id) }}">
+                            <button type="submit" class="btn btn-success"><i class="fas fa-envelope"></i> Verify Email</button>
+                        </form>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('admin_unverify_email', user_id=user.id) }}">
+                            <button type="submit" class="btn btn-warning"><i class="fas fa-undo"></i> Unverify Email</button>
+                        </form>
+                    {% endif %}
+                </div>
+
+                <!-- Mobile verification buttons removed - verified during registration via Twilio SMS -->
+
+                <div class="button-group">
+                    {% if not user.is_otp_enabled %}
+                        <form method="POST" action="{{ url_for('admin_enable_2fa', user_id=user.id) }}">
+                            <button type="submit" class="btn btn-success"><i class="fas fa-qrcode"></i> Enable 2FA</button>
+                        </form>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('admin_disable_2fa', user_id=user.id) }}">
+                            <button type="submit" class="btn btn-warning"><i class="fas fa-times"></i> Disable 2FA</button>
+                        </form>
+                    {% endif %}
+                </div>
+
+                <div class="button-group">
+                    {% if not user.webauthn_credential_id %}
+                        <form method="POST" action="{{ url_for('admin_enable_biometric', user_id=user.id) }}">
+                            <button type="submit" class="btn btn-success"><i class="fas fa-fingerprint"></i> Enable Biometric</button>
+                        </form>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('admin_disable_biometric', user_id=user.id) }}">
+                            <button type="submit" class="btn btn-warning"><i class="fas fa-times"></i> Disable Biometric</button>
+                        </form>
+                    {% endif %}
+                </div>
+
+                <div class="button-group">
+                    {% if user.is_locked %}
+                        <form method="POST" action="{{ url_for('admin_unlock_account', user_id=user.id) }}">
+                            <button type="submit" class="btn btn-success"><i class="fas fa-unlock-alt"></i> Unlock Account</button>
+                        </form>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('admin_lock_account', user_id=user.id) }}">
+                            <button type="submit" class="btn btn-danger"><i class="fas fa-lock"></i> Lock Account</button>
+                        </form>
+                    {% endif %}
+                </div>
+
+                <div class="button-group">
+                    {% if user.failed_attempts > 0 %}
+                        <form method="POST" action="{{ url_for('admin_reset_failed_attempts', user_id=user.id) }}">
+                            <button type="submit" class="btn btn-secondary"><i class="fas fa-redo-alt"></i> Reset Failed Attempts ({{ user.failed_attempts }})</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

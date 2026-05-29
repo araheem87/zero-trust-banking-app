@@ -1,0 +1,828 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="dashboard">
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+        <div class="welcome-text">
+            <h1>Welcome back, <span class="text-gradient">{{ user.username }}</span> 👋</h1>
+            <p>Here's your financial overview for today</p>
+        </div>
+        <div class="date-badge">
+            <i class="fas fa-calendar-alt"></i>
+            {{ now.strftime('%A, %B %d, %Y') }}
+        </div>
+    </div>
+
+    <!-- Main Account Card -->
+    <div class="main-account-card">
+        <div class="card-header">
+            <div class="card-header-left">
+                <i class="fas fa-credit-card"></i>
+                <h3>Primary Checking Account</h3>
+            </div>
+            <div class="card-header-right">
+                <span class="account-status">Active</span>
+            </div>
+        </div>
+        <div class="account-number">•••• •••• •••• {{ (user.id|string)[-4:] if user.id else '1234' }}</div>
+        <div class="balance-section">
+            <div class="balance-label">Current Balance</div>
+            <div class="balance-amount">${{ "%.2f"|format(user.balance) }}</div>
+        </div>
+        <div class="card-footer-info">
+            <div class="info-row">
+                <span><i class="fas fa-flag-checkered"></i> Available Balance</span>
+                <span>${{ "%.2f"|format(user.balance) }}</span>
+            </div>
+            <div class="info-row">
+                <span><i class="fas fa-chart-line"></i> Daily Limit Remaining</span>
+                <span>${{ "%.2f"|format(user.daily_limit - user.daily_transaction_total) }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-chart-simple"></i></div>
+            <div class="stat-value">${{ "%.2f"|format(user.daily_limit) }}</div>
+            <div class="stat-label">Daily Limit</div>
+            <div class="stat-sub">Used: ${{ "%.2f"|format(user.daily_transaction_total) }}</div>
+            <div class="progress-bar-mini">
+                <div class="progress-fill" style="width: {{ (user.daily_transaction_total / user.daily_limit * 100)|round }}%"></div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-calendar-week"></i></div>
+            <div class="stat-value">${{ "%.2f"|format(user.monthly_limit) }}</div>
+            <div class="stat-label">Monthly Limit</div>
+            <div class="stat-sub">Used: ${{ "%.2f"|format(user.monthly_transaction_total) }}</div>
+            <div class="progress-bar-mini">
+                <div class="progress-fill" style="width: {{ (user.monthly_transaction_total / user.monthly_limit * 100)|round }}%"></div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-fingerprint"></i></div>
+            <div class="stat-value">
+                {% if user.webauthn_credential_id %}
+                    <i class="fas fa-check-circle" style="color: #28a745; font-size: 28px;"></i>
+                {% else %}
+                    <i class="fas fa-circle-exclamation" style="color: #ffc107; font-size: 28px;"></i>
+                {% endif %}
+            </div>
+            <div class="stat-label">Biometric</div>
+            <div class="stat-sub">
+                {% if user.webauthn_credential_id %}
+                    Enabled
+                {% else %}
+                    Not Configured
+                {% endif %}
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-shield-haltered"></i></div>
+            <div class="stat-value">
+                {% if user.is_otp_enabled %}
+                    <i class="fas fa-check-circle" style="color: #28a745; font-size: 28px;"></i>
+                {% else %}
+                    <i class="fas fa-circle-exclamation" style="color: #ffc107; font-size: 28px;"></i>
+                {% endif %}
+            </div>
+            <div class="stat-label">2FA Security</div>
+            <div class="stat-sub">
+                {% if user.is_otp_enabled %}
+                    Enabled
+                {% else %}
+                    Disabled
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+        <div class="action-buttons">
+            <a href="{{ url_for('transfer') }}" class="action-btn action-transfer">
+                <i class="fas fa-paper-plane"></i>
+                <span>Send Money</span>
+            </a>
+            <a href="{{ url_for('deposit') }}" class="action-btn action-deposit">
+                <i class="fas fa-plus-circle"></i>
+                <span>Deposit</span>
+            </a>
+            <a href="{{ url_for('withdraw') }}" class="action-btn action-withdraw">
+                <i class="fas fa-minus-circle"></i>
+                <span>Withdraw</span>
+            </a>
+            <a href="{{ url_for('transactions') }}" class="action-btn action-history">
+                <i class="fas fa-history"></i>
+                <span>Statement</span>
+            </a>
+            <a href="{{ url_for('setup_otp') }}" class="action-btn action-security">
+                <i class="fas fa-shield-alt"></i>
+                <span>Security</span>
+            </a>
+            <a href="{{ url_for('change_password') }}" class="action-btn action-password">
+                <i class="fas fa-key"></i>
+                <span>Change PIN</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="recent-transactions">
+        <div class="section-header">
+            <h3><i class="fas fa-clock"></i> Recent Transactions</h3>
+            <a href="{{ url_for('transactions') }}" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+        </div>
+
+        {% if transactions and transactions|length > 0 %}
+            <div class="transactions-list">
+                {% for txn in transactions[:5] %}
+                <div class="transaction-item">
+                    <div class="transaction-icon
+                        {% if txn.type == 'deposit' %}icon-deposit
+                        {% elif txn.type == 'withdraw' %}icon-withdraw
+                        {% else %}icon-transfer{% endif %}">
+                        <i class="fas
+                            {% if txn.type == 'deposit' %}fa-arrow-down
+                            {% elif txn.type == 'withdraw' %}fa-arrow-up
+                            {% else %}fa-exchange-alt{% endif %}"></i>
+                    </div>
+                    <div class="transaction-details">
+                        <div class="transaction-title">
+                            {% if txn.type == 'deposit' %}
+                                Deposit
+                            {% elif txn.type == 'withdraw' %}
+                                Withdrawal
+                            {% elif txn.type == 'transfer' %}
+                                Transfer
+                            {% endif %}
+                            {% if txn.to_user and txn.type == 'transfer' %}
+                                to {{ txn.to_user.username }}
+                            {% endif %}
+                            {% if txn.from_user and txn.type == 'transfer' and txn.to_user_id == user.id %}
+                                from {{ txn.from_user.username }}
+                            {% endif %}
+                        </div>
+                        <div class="transaction-date">{{ txn.timestamp.strftime('%b %d, %Y • %I:%M %p') }}</div>
+                        <div class="transaction-ref">{{ txn.reference_id[:20] }}...</div>
+                    </div>
+                    <div class="transaction-amount
+                        {% if txn.type == 'deposit' or (txn.type == 'transfer' and txn.to_user_id == user.id) %}amount-positive
+                        {% else %}amount-negative{% endif %}">
+                        {% if txn.type == 'deposit' or (txn.type == 'transfer' and txn.to_user_id == user.id) %}
+                            +${{ "%.2f"|format(txn.amount) }}
+                        {% else %}
+                            -${{ "%.2f"|format(txn.amount) }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-receipt"></i>
+                <p>No transactions yet</p>
+                <a href="{{ url_for('deposit') }}" class="btn-primary">Make your first deposit</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Account Information -->
+    <div class="info-card">
+        <h3><i class="fas fa-user-circle"></i> Account Information</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label"><i class="fas fa-user"></i> Username</span>
+                <span class="info-value">{{ user.username }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label"><i class="fas fa-envelope"></i> Email</span>
+                <span class="info-value">{{ user.email }}</span>
+                {% if user.email_verified %}
+                    <span class="verified-badge"><i class="fas fa-check-circle"></i> Verified</span>
+                {% else %}
+                    <span class="pending-badge"><i class="fas fa-clock"></i> Pending</span>
+                {% endif %}
+            </div>
+            <div class="info-item">
+                <span class="info-label"><i class="fas fa-phone"></i> Mobile</span>
+                <span class="info-value">{{ user.mobile or 'Not set' }}</span>
+                <span class="verified-badge"><i class="fas fa-check-circle"></i> Verified</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label"><i class="fas fa-calendar"></i> Member Since</span>
+                <span class="info-value">{{ user.created_at.strftime('%B %d, %Y') }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label"><i class="fas fa-sign-in-alt"></i> Last Login</span>
+                <span class="info-value">{% if user.last_login %}{{ user.last_login.strftime('%B %d, %Y %I:%M %p') }}{% else %}First Login{% endif %}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Actions -->
+    <div class="security-actions">
+        <a href="{{ url_for('setup_otp') }}" class="security-btn">
+            <i class="fas fa-qrcode"></i>
+            <div>
+                <strong>Manage 2FA</strong>
+                <small>Enable or disable two-factor authentication</small>
+            </div>
+        </a>
+        <a href="{{ url_for('change_password') }}" class="security-btn">
+            <i class="fas fa-key"></i>
+            <div>
+                <strong>Change Password</strong>
+                <small>Update your account password</small>
+            </div>
+        </a>
+        {% if not user.webauthn_credential_id %}
+            <button id="registerBiometricBtn" class="security-btn biometric-btn">
+                <i class="fas fa-fingerprint"></i>
+                <div>
+                    <strong>Register Biometric</strong>
+                    <small>Set up fingerprint or Windows Hello</small>
+                </div>
+            </button>
+        {% else %}
+            <div class="security-btn biometric-enabled">
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <strong>Biometric Enabled</strong>
+                    <small>Fingerprint authentication active</small>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .dashboard {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .welcome-banner {
+        background: linear-gradient(135deg, #0a2540 0%, #1a4a6f 100%);
+        border-radius: 24px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        color: white;
+    }
+
+    .welcome-text h1 {
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .date-badge {
+        background: rgba(255,255,255,0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-size: 0.9rem;
+    }
+
+    .main-account-card {
+        background: white;
+        border-radius: 28px;
+        padding: 1.8rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .card-header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .card-header-left i {
+        font-size: 1.5rem;
+        color: #0a2540;
+    }
+
+    .card-header-left h3 {
+        font-size: 1.1rem;
+        color: #333;
+    }
+
+    .account-status {
+        background: #d4edda;
+        color: #28a745;
+        padding: 4px 12px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .account-number {
+        font-family: monospace;
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+        letter-spacing: 1px;
+    }
+
+    .balance-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .balance-label {
+        font-size: 0.8rem;
+        color: #888;
+        margin-bottom: 0.25rem;
+    }
+
+    .balance-amount {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #0a2540;
+    }
+
+    .card-footer-info {
+        border-top: 1px solid #eee;
+        padding-top: 1rem;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        font-size: 0.85rem;
+        color: #555;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 20px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        transition: transform 0.3s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+    }
+
+    .stat-icon {
+        font-size: 2rem;
+        color: #0a2540;
+        margin-bottom: 0.75rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #0a2540;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: #888;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-sub {
+        font-size: 0.7rem;
+        color: #aaa;
+        margin-bottom: 0.5rem;
+    }
+
+    .progress-bar-mini {
+        background: #e9ecef;
+        border-radius: 10px;
+        height: 4px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        background: linear-gradient(90deg, #0a2540, #00d4ff);
+        height: 100%;
+        border-radius: 10px;
+    }
+
+    .quick-actions {
+        background: white;
+        border-radius: 24px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .quick-actions h3 {
+        margin-bottom: 1rem;
+        color: #0a2540;
+        font-size: 1.1rem;
+    }
+
+    .action-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+    }
+
+    .action-btn {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 16px;
+        text-align: center;
+        text-decoration: none;
+        color: #0a2540;
+        transition: all 0.3s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+    }
+
+    .action-btn i {
+        font-size: 1.5rem;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .action-transfer:hover { background: #e3f2fd; color: #1976d2; }
+    .action-deposit:hover { background: #e8f5e9; color: #2e7d32; }
+    .action-withdraw:hover { background: #ffebee; color: #c62828; }
+    .action-history:hover { background: #f3e5f5; color: #7b1fa2; }
+    .action-security:hover { background: #e0f2fe; color: #0284c7; }
+    .action-password:hover { background: #fef9e6; color: #b45309; }
+
+    .recent-transactions {
+        background: white;
+        border-radius: 24px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .section-header h3 {
+        font-size: 1.1rem;
+        color: #0a2540;
+    }
+
+    .view-all {
+        color: #0a2540;
+        text-decoration: none;
+        font-size: 0.85rem;
+    }
+
+    .transactions-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .transaction-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 16px;
+        transition: background 0.3s;
+    }
+
+    .transaction-item:hover {
+        background: #f8f9fa;
+    }
+
+    .transaction-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .icon-deposit {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .icon-withdraw {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .icon-transfer {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .transaction-details {
+        flex: 1;
+    }
+
+    .transaction-title {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 4px;
+        font-size: 0.9rem;
+    }
+
+    .transaction-date {
+        font-size: 0.7rem;
+        color: #888;
+    }
+
+    .transaction-ref {
+        font-size: 0.65rem;
+        color: #aaa;
+        font-family: monospace;
+    }
+
+    .transaction-amount {
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .amount-positive {
+        color: #2e7d32;
+    }
+
+    .amount-negative {
+        color: #c62828;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #888;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: #ccc;
+    }
+
+    .btn-primary {
+        display: inline-block;
+        background: linear-gradient(135deg, #0a2540, #1a4a6f);
+        color: white;
+        padding: 0.6rem 1.5rem;
+        border-radius: 50px;
+        text-decoration: none;
+        margin-top: 1rem;
+        font-size: 0.85rem;
+    }
+
+    .info-card {
+        background: white;
+        border-radius: 24px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    .info-card h3 {
+        margin-bottom: 1rem;
+        color: #0a2540;
+        font-size: 1.1rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+
+    .info-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem;
+        background: #f8f9fa;
+        border-radius: 12px;
+        flex-wrap: wrap;
+    }
+
+    .info-label {
+        font-size: 0.8rem;
+        color: #666;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .info-value {
+        font-weight: 500;
+        color: #333;
+        font-size: 0.85rem;
+    }
+
+    .verified-badge {
+        color: #28a745;
+        font-size: 0.7rem;
+        background: #e8f5e9;
+        padding: 2px 8px;
+        border-radius: 20px;
+    }
+
+    .pending-badge {
+        color: #ffc107;
+        font-size: 0.7rem;
+        background: #fff3cd;
+        padding: 2px 8px;
+        border-radius: 20px;
+    }
+
+    .security-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+
+    .security-btn {
+        background: white;
+        border-radius: 20px;
+        padding: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        text-decoration: none;
+        color: #0a2540;
+        border: 1px solid #e9ecef;
+        transition: all 0.3s;
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+        font-family: inherit;
+    }
+
+    .security-btn i {
+        font-size: 1.8rem;
+    }
+
+    .security-btn strong {
+        display: block;
+        font-size: 0.9rem;
+    }
+
+    .security-btn small {
+        font-size: 0.7rem;
+        color: #888;
+    }
+
+    .security-btn:hover {
+        transform: translateY(-2px);
+        border-color: #0a2540;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .biometric-btn {
+        background: linear-gradient(135deg, #0a2540, #1a4a6f);
+        color: white;
+    }
+
+    .biometric-btn small {
+        color: rgba(255,255,255,0.7);
+    }
+
+    .biometric-enabled {
+        background: #e8f5e9;
+        border-color: #28a745;
+        color: #2e7d32;
+        cursor: default;
+    }
+
+    .biometric-enabled:hover {
+        transform: none;
+    }
+
+    @media (max-width: 768px) {
+        .welcome-banner {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+        .action-buttons {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .security-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<script>
+    function base64urlToBuffer(base64url) {
+        let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4) base64 += '=';
+        const binaryString = atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+        return bytes.buffer;
+    }
+
+    function bufferToBase64url(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        let base64 = btoa(binary);
+        return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    const registerBtn = document.getElementById('registerBiometricBtn');
+    if (registerBtn) {
+        registerBtn.addEventListener('click', async () => {
+            try {
+                registerBtn.disabled = true;
+                registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><div><strong>Please wait...</strong><small>Waiting for Windows Hello</small></div>';
+
+                const optionsResp = await fetch('/webauthn/register/begin', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                if (!optionsResp.ok) throw new Error('Failed to get registration options');
+                const options = await optionsResp.json();
+
+                const challengeBuffer = base64urlToBuffer(options.challenge);
+                const userIdBuffer = base64urlToBuffer(options.user.id);
+                const publicKey = {
+                    challenge: challengeBuffer,
+                    rp: { id: options.rp.id, name: options.rp.name },
+                    user: { id: userIdBuffer, name: options.user.name, displayName: options.user.displayName },
+                    pubKeyCredParams: options.pubKeyCredParams,
+                    authenticatorSelection: options.authenticatorSelection,
+                    timeout: options.timeout,
+                    attestation: options.attestation,
+                    excludeCredentials: options.excludeCredentials ? options.excludeCredentials.map(cred => ({ id: base64urlToBuffer(cred.id), type: cred.type })) : []
+                };
+
+                const credential = await navigator.credentials.create({ publicKey });
+
+                const regData = {
+                    id: credential.id,
+                    rawId: bufferToBase64url(credential.rawId),
+                    type: credential.type,
+                    response: {
+                        attestationObject: bufferToBase64url(credential.response.attestationObject),
+                        clientDataJSON: bufferToBase64url(credential.response.clientDataJSON)
+                    }
+                };
+
+                const verifyResp = await fetch('/webauthn/register/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(regData) });
+                const result = await verifyResp.json();
+
+                if (result.success) {
+                    alert('✅ Biometric registration successful! You can now login with fingerprint.');
+                    location.reload();
+                } else {
+                    alert('❌ Registration failed: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                if (error.name === 'NotAllowedError') {
+                    alert('❌ You cancelled the biometric prompt.\n\nPlease ensure Windows Hello is set up in Windows Settings.');
+                } else if (error.name === 'NotSupportedError') {
+                    alert('❌ WebAuthn is not supported in this browser.\n\nPlease use Chrome, Edge, or Firefox.');
+                } else {
+                    alert('❌ Failed to register biometric: ' + error.message);
+                }
+            } finally {
+                registerBtn.disabled = false;
+                registerBtn.innerHTML = '<i class="fas fa-fingerprint"></i><div><strong>Register Biometric</strong><small>Set up fingerprint or Windows Hello</small></div>';
+            }
+        });
+    }
+</script>
+{% endblock %}

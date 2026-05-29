@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Zero Trust Bank - Verify Mobile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container { max-width: 450px; width: 100%; }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideUp 0.5s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .logo { text-align: center; margin-bottom: 30px; }
+        .logo i { font-size: 50px; color: #667eea; margin-bottom: 15px; }
+        .logo h1 { font-size: 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 5px; }
+        .logo p { color: #666; font-size: 14px; }
+        h2 { color: #333; margin-bottom: 10px; font-size: 24px; }
+        .subtitle { color: #666; font-size: 14px; margin-bottom: 30px; line-height: 1.6; }
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+        .alert-success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+        .alert-info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
+        .info-box {
+            background: #e8f0fe;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .info-box i { font-size: 40px; color: #667eea; margin-bottom: 10px; }
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+            text-decoration: none;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(102,126,234,0.4); }
+        .btn-secondary { background: #e8f0fe; color: #667eea; }
+        .btn-secondary:hover { background: #d4e0fc; }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+        .status-verified { background: #d4edda; color: #155724; }
+        .back-link { text-align: center; margin-top: 20px; }
+        .back-link a { color: #667eea; text-decoration: none; font-size: 14px; }
+        .back-link a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="logo">
+                <i class="fas fa-shield-alt"></i>
+                <h1>Zero Trust Bank</h1>
+                <p>Mobile Verification</p>
+            </div>
+
+            {% if user.is_mobile_verified %}
+                <div class="status-badge status-verified">
+                    <i class="fas fa-check-circle"></i> Mobile Verified
+                </div>
+                <div class="info-box">
+                    <i class="fas fa-phone-alt"></i>
+                    <h3>{{ user.mobile }}</h3>
+                    <p>Your mobile number was verified via SMS during registration.</p>
+                    <p style="font-size: 12px; margin-top: 10px;">No further verification needed.</p>
+                </div>
+                <a href="{{ url_for('dashboard') }}" class="btn">
+                    <i class="fas fa-tachometer-alt"></i> Back to Dashboard
+                </a>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Mobile verification is done during registration.
+                </div>
+                <div class="info-box">
+                    <i class="fas fa-phone-alt"></i>
+                    <p>Your mobile number will be verified via SMS when you create your account.</p>
+                    <p style="margin-top: 15px;">If you need to update your mobile number, please contact support.</p>
+                </div>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="card" style="max-width: 500px; margin: 0 auto;">
+        <h2><i class="fas fa-minus-circle" style="color: #ffc107;"></i> Withdraw Money</h2>
+
+        <div class="balance-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 15px; text-align: center; margin: 20px 0;">
+            <p>Current Balance</p>
+            <div style="font-size: 32px; font-weight: 700;">${{ "%.2f"|format(user.balance) }}</div>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin: 20px 0;">
+            <p style="margin: 8px 0; display: flex; justify-content: space-between;">
+                <span>Daily Limit:</span>
+                <strong>${{ "%.2f"|format(user.daily_limit) }}</strong>
+                <span style="color: {% if user.daily_transaction_total >= user.daily_limit %}red{% else %}green{% endif %}">
+                    (Used: ${{ "%.2f"|format(user.daily_transaction_total) }})
+                </span>
+            </p>
+            <p style="margin: 8px 0; display: flex; justify-content: space-between;">
+                <span>Monthly Limit:</span>
+                <strong>${{ "%.2f"|format(user.monthly_limit) }}</strong>
+                <span style="color: {% if user.monthly_transaction_total >= user.monthly_limit %}red{% else %}green{% endif %}">
+                    (Used: ${{ "%.2f"|format(user.monthly_transaction_total) }})
+                </span>
+            </p>
+        </div>
+
+        <form id="transactionForm" data-type="withdraw" method="POST" action="{{ url_for('withdraw') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token else '' }}">
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Amount ($)</label>
+                <input type="number" id="amount" name="amount" step="0.01" min="0.01" max="{{ user.balance }}" required
+                       style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px;">
+                <small style="color: #666;">Maximum withdrawal: ${{ "%.2f"|format(user.balance) }}</small>
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 500;">Description (Optional)</label>
+                <input type="text" id="description" name="description" placeholder="What's this for?"
+                       style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px;">
+            </div>
+
+            <button type="button" id="confirmWithdrawBtn" class="btn btn-warning" style="width: 100%;">
+                <i class="fas fa-check"></i> Confirm Withdrawal
+            </button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary" style="display: block; text-align: center; margin-top: 15px;">
+                <i class="fas fa-arrow-left"></i> Cancel
+            </a>
+        </form>
+    </div>
+</div>
+
+<!-- Password Modal -->
+<div id="passwordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 20px; padding: 30px; max-width: 400px; width: 90%; text-align: center;">
+        <i class="fas fa-lock" style="font-size: 48px; color: #667eea; margin-bottom: 20px;"></i>
+        <h3 style="margin-bottom: 20px;">Confirm Withdrawal</h3>
+        <p style="margin-bottom: 20px; color: #666;">Enter your password to complete this transaction</p>
+        <p style="margin-bottom: 20px; font-weight: bold; color: #ffc107;">Amount: $<span id="modalAmount">0.00</span></p>
+        <input type="password" id="modalPassword" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 20px;" placeholder="Enter your password">
+        <div style="display: flex; gap: 10px;">
+            <button id="modalConfirmBtn" class="btn btn-primary" style="flex: 1;">Confirm</button>
+            <button id="modalCancelBtn" class="btn btn-secondary" style="flex: 1;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const confirmBtn = document.getElementById('confirmWithdrawBtn');
+    const amountInput = document.getElementById('amount');
+    const descriptionInput = document.getElementById('description');
+    const modal = document.getElementById('passwordModal');
+    const modalPassword = document.getElementById('modalPassword');
+    const modalConfirm = document.getElementById('modalConfirmBtn');
+    const modalCancel = document.getElementById('modalCancelBtn');
+    const modalAmount = document.getElementById('modalAmount');
+    const transactionForm = document.getElementById('transactionForm');
+
+    function base64urlToBuffer(base64url) {
+        let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4) base64 += '=';
+        const binaryString = atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+        return bytes.buffer;
+    }
+
+    function bufferToBase64url(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        let base64 = btoa(binary);
+        return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    confirmBtn.addEventListener('click', async () => {
+        const amount = amountInput.value.trim();
+        const description = descriptionInput ? descriptionInput.value : '';
+
+        if (!amount || amount <= 0) {
+            alert('Please enter a valid amount');
+            return;
+        }
+
+        if (parseFloat(amount) > {{ user.balance }}) {
+            alert('Insufficient balance!');
+            return;
+        }
+
+        {% if user.webauthn_credential_id %}
+        // Try biometric first
+        try {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying fingerprint...';
+
+            const optionsResp = await fetch('/webauthn/transaction/begin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'withdraw',
+                    amount: amount,
+                    description: description
+                })
+            });
+            const options = await optionsResp.json();
+
+            if (options.fallback) {
+                // No biometric registered, show password modal
+                modalAmount.textContent = parseFloat(amount).toFixed(2);
+                modal.style.display = 'flex';
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm Withdrawal';
+                return;
+            }
+
+            const challengeBuffer = base64urlToBuffer(options.challenge);
+            const publicKey = {
+                challenge: challengeBuffer,
+                allowCredentials: options.allowCredentials.map(cred => ({
+                    id: base64urlToBuffer(cred.id),
+                    type: cred.type
+                })),
+                timeout: options.timeout,
+                rpId: options.rpId,
+                userVerification: options.userVerification
+            };
+
+            const credential = await navigator.credentials.get({ publicKey });
+            const authData = {
+                id: credential.id,
+                rawId: bufferToBase64url(credential.rawId),
+                type: credential.type,
+                response: {
+                    authenticatorData: bufferToBase64url(credential.response.authenticatorData),
+                    clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
+                    signature: bufferToBase64url(credential.response.signature),
+                    userHandle: credential.response.userHandle ? bufferToBase64url(credential.response.userHandle) : null
+                }
+            };
+
+            const verifyResp = await fetch('/webauthn/transaction/complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(authData)
+            });
+            const result = await verifyResp.json();
+
+            if (result.success) {
+                alert('✅ Fingerprint verified! Transaction completed. Check your email for receipts.');
+                window.location.href = result.redirect;
+            } else {
+                // Biometric failed, show password modal
+                modalAmount.textContent = parseFloat(amount).toFixed(2);
+                modal.style.display = 'flex';
+            }
+        } catch (error) {
+            console.error('Biometric error:', error);
+            modalAmount.textContent = parseFloat(amount).toFixed(2);
+            modal.style.display = 'flex';
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm Withdrawal';
+        }
+        {% else %}
+        // No biometric registered at all, show password modal
+        modalAmount.textContent = parseFloat(amount).toFixed(2);
+        modal.style.display = 'flex';
+        {% endif %}
+    });
+
+    // Password modal handlers
+    modalConfirm.addEventListener('click', () => {
+        const password = modalPassword.value.trim();
+        const amount = amountInput.value.trim();
+        const description = descriptionInput ? descriptionInput.value : '';
+
+        if (!password) {
+            alert('Please enter your password');
+            return;
+        }
+
+        modalConfirm.disabled = true;
+        modalConfirm.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+        // Create hidden fields and submit the form
+        const passwordField = document.createElement('input');
+        passwordField.type = 'hidden';
+        passwordField.name = 'confirm_password';
+        passwordField.value = password;
+        transactionForm.appendChild(passwordField);
+
+        transactionForm.submit();
+    });
+
+    modalCancel.addEventListener('click', () => {
+        modal.style.display = 'none';
+        modalPassword.value = '';
+        modalConfirm.disabled = false;
+        modalConfirm.innerHTML = 'Confirm';
+    });
+
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+            modalPassword.value = '';
+        }
+    });
+</script>
+
+<style>
+    .card { background: white; border-radius: 20px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    h2 { color: #333; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .btn-warning { background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+    .btn-warning:hover { transform: translateY(-2px); }
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+    .btn-secondary { background: #e8f0fe; color: #667eea; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+</style>
+{% endblock %}

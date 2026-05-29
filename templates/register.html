@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Zero Trust Bank - Register</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 450px;
+            width: 100%;
+        }
+
+        .register-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo i {
+            font-size: 50px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .logo h1 {
+            font-size: 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .label-required {
+            color: #dc3545;
+            margin-left: 3px;
+        }
+
+        .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            color: #667eea;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-control.error {
+            border-color: #dc3545;
+        }
+
+        .form-control.success {
+            border-color: #28a745;
+        }
+
+        .otp-section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .otp-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .otp-input-group input {
+            flex: 1;
+        }
+
+        .btn-sm {
+            padding: 12px 20px;
+            background: #e8f0fe;
+            color: #667eea;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .btn-sm:hover {
+            background: #d4e0fc;
+            transform: translateY(-2px);
+        }
+
+        .btn-send-otp {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-send-otp:hover {
+            background: linear-gradient(135deg, #218838, #1aa179);
+            transform: translateY(-2px);
+        }
+
+        .btn-send-otp:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .timer-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .timer-warning {
+            color: #dc3545 !important;
+            background: #fff5f5 !important;
+        }
+
+        .password-strength {
+            margin-top: 10px;
+            height: 5px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .strength-bar {
+            height: 100%;
+            width: 0;
+            transition: all 0.3s;
+        }
+
+        .strength-text {
+            font-size: 12px;
+            margin-top: 5px;
+            color: #666;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .login-link {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .login-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+            color: #666;
+            font-size: 12px;
+            flex-wrap: wrap;
+        }
+
+        .features span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .features i {
+            color: #28a745;
+        }
+
+        .info-note {
+            background: #e8f0fe;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: #667eea;
+            text-align: center;
+        }
+
+        .mobile-hint {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .verified-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #d4edda;
+            color: #155724;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .steps-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 25px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #999;
+        }
+
+        .step-num {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            color: #999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .step.active .step-num {
+            background: #667eea;
+            color: white;
+        }
+
+        .step.done .step-num {
+            background: #28a745;
+            color: white;
+        }
+
+        .step-line {
+            width: 20px;
+            height: 2px;
+            background: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="register-card">
+            <div class="logo">
+                <i class="fas fa-shield-alt"></i>
+                <h1>Zero Trust Bank</h1>
+                <p>Create your secure account</p>
+            </div>
+
+            <h2>Create Account</h2>
+            <p class="subtitle">Join the most secure banking platform</p>
+
+            <!-- Steps indicator -->
+            <div class="steps-indicator">
+                <div class="step active" id="step1">
+                    <div class="step-num">1</div>
+                    <span>Details</span>
+                </div>
+                <div class="step-line"></div>
+                <div class="step" id="step2">
+                    <div class="step-num">2</div>
+                    <span>Verify</span>
+                </div>
+                <div class="step-line"></div>
+                <div class="step" id="step3">
+                    <div class="step-num">3</div>
+                    <span>Done</span>
+                </div>
+            </div>
+
+            <div class="info-note">
+                <i class="fas fa-mobile-alt"></i>
+                Mobile verification via <strong>SMS</strong> is required for account creation
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <i class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'error' %}fa-exclamation-circle{% elif category == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %}"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" id="registerForm">
+
+                <!-- USERNAME -->
+                <div class="form-group">
+                    <label>Username <span class="label-required">*</span></label>
+                    <div class="input-group">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" name="username" id="username"
+                               class="form-control" placeholder="Choose a username" required>
+                    </div>
+                </div>
+
+                <!-- EMAIL -->
+                <div class="form-group">
+                    <label>Email Address <span class="label-required">*</span></label>
+                    <div class="input-group">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" name="email" id="email"
+                               class="form-control" placeholder="Enter your email" required>
+                    </div>
+                </div>
+
+                <!-- MOBILE + SEND OTP -->
+                <div class="form-group">
+                    <label>Mobile Number <span class="label-required">*</span></label>
+                    <div class="input-group">
+                        <i class="fas fa-phone input-icon"></i>
+                        <input type="tel" name="mobile" id="mobile"
+                               class="form-control" placeholder="e.g. 447301319668" required>
+                    </div>
+                    <div class="mobile-hint">
+                        <i class="fas fa-info-circle"></i>
+                        Include country code without + (e.g. 447301319668 for UK)
+                    </div>
+                    <button type="button" id="sendOtpBtn" class="btn-send-otp" style="margin-top: 10px;">
+                        <i class="fas fa-paper-plane"></i> Send OTP via SMS
+                    </button>
+                </div>
+
+                <!-- OTP INPUT (hidden until OTP sent) -->
+                <div class="form-group otp-section" id="otpSection">
+                    <label>Verification Code <span class="label-required">*</span></label>
+                    <div class="otp-input-group">
+                        <div class="input-group" style="flex: 1;">
+                            <i class="fas fa-key input-icon"></i>
+                            <input type="text" name="mobile_otp" id="mobile_otp"
+                                   class="form-control" placeholder="Enter 6-digit SMS code"
+                                   maxlength="6" inputmode="numeric">
+                        </div>
+                        <button type="button" id="resendOtpBtn" class="btn-sm" style="display: none;">
+                            <i class="fas fa-redo"></i> Resend
+                        </button>
+                    </div>
+                    <div class="timer-text" id="timerText"></div>
+                    <div id="verifiedBadge" style="display: none;">
+                        <span class="verified-badge">
+                            <i class="fas fa-check-circle"></i> Mobile Verified
+                        </span>
+                    </div>
+                </div>
+
+                <!-- PASSWORD -->
+                <div class="form-group">
+                    <label>Password <span class="label-required">*</span></label>
+                    <div class="input-group">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" name="password" id="password"
+                               class="form-control" placeholder="Create a strong password" required>
+                    </div>
+                    <div class="password-strength">
+                        <div class="strength-bar" id="strengthBar"></div>
+                    </div>
+                    <div class="strength-text" id="strengthText">Enter a password</div>
+                </div>
+
+                <!-- SUBMIT -->
+                <button type="submit" class="btn" id="submitBtn">
+                    <i class="fas fa-user-plus"></i>
+                    Create Account
+                </button>
+
+                <div class="login-link">
+                    Already have an account? <a href="{{ url_for('login') }}">Login here</a>
+                </div>
+
+                <div class="features">
+                    <span><i class="fas fa-check-circle"></i> Email Verification</span>
+                    <span><i class="fas fa-check-circle"></i> Bank-Level Security</span>
+                    <span><i class="fas fa-check-circle"></i> 2FA Support</span>
+                    <span><i class="fas fa-check-circle"></i> SMS Verified</span>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // =====================
+        // DOM ELEMENTS
+        // =====================
+        const mobileInput   = document.getElementById('mobile');
+        const sendOtpBtn    = document.getElementById('sendOtpBtn');
+        const otpSection    = document.getElementById('otpSection');
+        const otpInput      = document.getElementById('mobile_otp');
+        const resendBtn     = document.getElementById('resendOtpBtn');
+        const timerText     = document.getElementById('timerText');
+        const submitBtn     = document.getElementById('submitBtn');
+        const verifiedBadge = document.getElementById('verifiedBadge');
+
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+
+        let timerInterval = null;
+        let otpVerified   = false;
+        let timeLeft      = 0;
+
+        // =====================
+        // PASSWORD STRENGTH
+        // =====================
+        const passwordInput = document.getElementById('password');
+        const strengthBar   = document.getElementById('strengthBar');
+        const strengthText  = document.getElementById('strengthText');
+
+        passwordInput.addEventListener('input', function () {
+            const val = this.value;
+            let strength = 0;
+
+            if (val.length >= 8)         strength += 25;
+            if (val.match(/[a-z]+/))     strength += 25;
+            if (val.match(/[A-Z]+/))     strength += 25;
+            if (val.match(/[0-9]+/))     strength += 25;
+
+            strengthBar.style.width = strength + '%';
+
+            if (strength < 50) {
+                strengthBar.style.background = '#dc3545';
+                strengthText.textContent = 'Weak — use 8+ chars with uppercase, lowercase & numbers';
+                strengthText.style.color  = '#dc3545';
+            } else if (strength < 100) {
+                strengthBar.style.background = '#ffc107';
+                strengthText.textContent = 'Medium — add more variety for stronger security';
+                strengthText.style.color  = '#ffc107';
+            } else {
+                strengthBar.style.background = '#28a745';
+                strengthText.textContent = 'Strong password! ✅';
+                strengthText.style.color  = '#28a745';
+            }
+        });
+
+        // =====================
+        // SEND OTP
+        // =====================
+        sendOtpBtn.addEventListener('click', function () {
+            const mobile = mobileInput.value.trim();
+
+            if (!mobile || mobile.length < 10) {
+                showTimerMsg('⚠️ Please enter a valid mobile number (e.g. 447301319668)', '#dc3545');
+                mobileInput.classList.add('error');
+                return;
+            }
+
+            sendOTP(mobile);
+        });
+
+        function sendOTP(mobile) {
+            // Button loading state
+            sendOtpBtn.disabled = true;
+            sendOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending SMS...';
+
+            fetch('/send-otp', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({mobile: mobile})
+            })
+            .then(r => r.json())
+            .then(data => {
+                sendOtpBtn.disabled = false;
+                sendOtpBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Resend OTP';
+
+                if (data.success) {
+                    // Show OTP section
+                    otpSection.style.display = 'block';
+                    otpInput.focus();
+
+                    mobileInput.classList.add('success');
+                    mobileInput.classList.remove('error');
+
+                    // Update steps
+                    step1.classList.remove('active');
+                    step1.classList.add('done');
+                    step2.classList.add('active');
+
+                    // Start countdown
+                    startTimer(120);
+
+                    showTimerMsg('📱 SMS sent! Check your phone for the 6-digit code.', '#28a745');
+
+                } else {
+                    mobileInput.classList.add('error');
+                    mobileInput.classList.remove('success');
+                    showTimerMsg('❌ ' + data.message + ' — make sure number includes country code', '#dc3545');
+                    sendOtpBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP via SMS';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                sendOtpBtn.disabled = false;
+                sendOtpBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send OTP via SMS';
+                showTimerMsg('❌ Network error. Is Flask running?', '#dc3545');
+            });
+        }
+
+        // =====================
+        // TIMER
+        // =====================
+        function startTimer(seconds) {
+            if (timerInterval) clearInterval(timerInterval);
+            timeLeft = seconds;
+            resendBtn.style.display = 'none';
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerText.textContent = '⏰ Code expired — click Resend to get a new code.';
+                    timerText.classList.add('timer-warning');
+                    resendBtn.style.display = 'inline-block';
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            if (otpVerified) return;
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            timerText.textContent = `⏱ Code expires in: ${mins}:${secs.toString().padStart(2, '0')} — check your phone 📱`;
+            timerText.style.color = timeLeft < 30 ? '#dc3545' : '#666';
+            timerText.classList.remove('timer-warning');
+        }
+
+        function showTimerMsg(msg, color) {
+            timerText.textContent = msg;
+            timerText.style.color = color || '#666';
+        }
+
+        // =====================
+        // RESEND OTP
+        // =====================
+        resendBtn.addEventListener('click', function () {
+            const mobile = mobileInput.value.trim();
+            if (mobile) {
+                otpVerified = false;
+                verifiedBadge.style.display = 'none';
+                otpInput.value = '';
+                otpInput.classList.remove('success', 'error');
+                sendOTP(mobile);
+            }
+        });
+
+        // =====================
+        // AUTO-VERIFY OTP (fires when 6 digits entered)
+        // =====================
+        otpInput.addEventListener('input', function () {
+            // Only allow digits
+            this.value = this.value.replace(/\D/g, '');
+
+            if (this.value.length === 6) {
+                verifyOTP(this.value);
+            }
+        });
+
+        function verifyOTP(otp) {
+            const mobile = mobileInput.value.trim();
+
+            showTimerMsg('🔄 Checking code with Twilio...', '#667eea');
+            otpInput.disabled = true;
+
+            fetch('/verify-otp-registration', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({mobile: mobile, otp: otp})
+            })
+            .then(r => r.json())
+            .then(data => {
+                otpInput.disabled = false;
+
+                if (data.success) {
+                    otpVerified = true;
+                    otpInput.classList.add('success');
+                    otpInput.classList.remove('error');
+
+                    if (timerInterval) clearInterval(timerInterval);
+
+                    // Show verified badge
+                    verifiedBadge.style.display = 'block';
+                    resendBtn.style.display = 'none';
+
+                    // Show success message in timer area
+                    showTimerMsg('✅ Mobile verified! Fill in your password and create your account.', '#28a745');
+
+                    // Update steps
+                    step2.classList.remove('active');
+                    step2.classList.add('done');
+                    step3.classList.add('active');
+
+                    // Focus password
+                    document.getElementById('password').focus();
+
+                } else {
+                    otpVerified = false;
+                    otpInput.classList.add('error');
+                    otpInput.classList.remove('success');
+                    showTimerMsg('❌ ' + data.message, '#dc3545');
+
+                    // Shake the input
+                    otpInput.style.animation = 'none';
+                    setTimeout(() => otpInput.style.animation = '', 10);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                otpInput.disabled = false;
+                showTimerMsg('❌ Network error verifying code. Try again.', '#dc3545');
+            });
+        }
+
+        // =====================
+        // FORM SUBMIT VALIDATION
+        // =====================
+        document.getElementById('registerForm').addEventListener('submit', function (e) {
+            const passwordVal = passwordInput.value;
+            const mobile      = mobileInput.value.trim();
+            const otp         = otpInput.value.trim();
+
+            if (!mobile) {
+                e.preventDefault();
+                alert('⚠️ Mobile number is required!');
+                return false;
+            }
+
+            if (!otpVerified) {
+                e.preventDefault();
+                alert('⚠️ Please verify your mobile number first!\n\n1. Enter your mobile number\n2. Click "Send OTP via SMS"\n3. Enter the 6-digit code from your SMS');
+                return false;
+            }
+
+            if (otp.length !== 6) {
+                e.preventDefault();
+                alert('⚠️ Please enter the 6-digit verification code!');
+                return false;
+            }
+
+            if (passwordVal.length < 8) {
+                e.preventDefault();
+                alert('⚠️ Password must be at least 8 characters long!');
+                return false;
+            }
+
+            if (!/[A-Z]/.test(passwordVal)) {
+                e.preventDefault();
+                alert('⚠️ Password must contain at least one uppercase letter!');
+                return false;
+            }
+
+            if (!/[0-9]/.test(passwordVal)) {
+                e.preventDefault();
+                alert('⚠️ Password must contain at least one number!');
+                return false;
+            }
+
+            // Show loading state on button
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+        });
+    </script>
+</body>
+</html>
